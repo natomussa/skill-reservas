@@ -17,15 +17,30 @@ noturna. Saiu de um módulo que já roda em produção numa casa operando.
 O código de referência é Next.js (App Router) + Supabase. Em outro stack o Claude reaproveita
 as regras (TypeScript puro, com teste) e reescreve banco e rotas mantendo os contratos.
 
-## Instalar
+## Usar (um comando)
+
+Precisa do [Claude Code](https://claude.com/claude-code) instalado. Abra o terminal na pasta
+do seu sistema, ou numa pasta nova e vazia se ainda não tem sistema, e cole:
 
 ```bash
-git clone https://github.com/natomussa/skill-reservas.git ~/.claude/skills/reservas
+(git -C ~/.claude/skills/reservas pull -q 2>/dev/null || git clone -q https://github.com/natomussa/skill-reservas.git ~/.claude/skills/reservas) && claude "/reservas"
 ```
 
-Depois, dentro do seu projeto no Claude Code, peça: **"implanta o sistema de reservas"**.
-O Claude lê o projeto, faz poucas perguntas (qual tabela é a casa, quais cargos operam a
-porta, se quer WhatsApp agora) e implanta em etapas, testando cada uma.
+O mesmo comando instala na primeira vez e atualiza nas próximas. O Claude olha a pasta e
+segue sozinho:
+
+- **Já tem sistema em Next.js + Supabase**: encaixa o módulo no que existe (login, cargos, visual).
+- **Tem sistema em outra linguagem**: reescreve banco e rotas no idioma do projeto.
+- **Pasta vazia**: cria o sistema do zero e te guia pra criar a conta no Supabase.
+
+Depois de instalado, dá pra ir mais rápido contando como a casa funciona já no comando:
+
+```bash
+claude "/reservas bar com 12 mesas, abre de quarta a domingo, reservas das 18h às 21h de meia em meia hora, 30 pessoas por horário"
+```
+
+Ele só pergunta o que faltar, uma coisa por vez, e no fim entrega o link de reservas pronto
+pra bio do Instagram e pro Google.
 
 ## Estrutura
 

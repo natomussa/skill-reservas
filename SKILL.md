@@ -1,28 +1,62 @@
 ---
 name: reservas
-description: Implanta um sistema de reservas de mesa para restaurante, bar ou casa noturna (estilo GetIn) no projeto atual. Página pública onde o cliente reserva sozinho com lotação por horário, link pra alterar/cancelar sem login, confirmação por WhatsApp, e painel da recepção com reservas do dia, fila de espera, mapa de mesas, CRM de clientes e configuração. Use quando pedirem "sistema de reservas", "reserva de mesa", "página pra cliente reservar", "fila de espera", "painel da hostess" ou "recepção do restaurante".
+description: Implanta um sistema de reservas de mesa para restaurante, bar ou casa noturna (estilo GetIn) no projeto atual, ou cria o sistema do zero numa pasta vazia. Página pública onde o cliente reserva sozinho com lotação por horário, link pra alterar/cancelar sem login, confirmação por WhatsApp, e painel da recepção com reservas do dia, fila de espera, mapa de mesas, CRM de clientes e configuração. Use quando pedirem "sistema de reservas", "reserva de mesa", "página pra cliente reservar", "fila de espera", "painel da hostess" ou "recepção do restaurante".
+argument-hint: "[como a casa funciona, ex.: bar com 15 mesas, qua a dom das 18h às 23h]"
 ---
 
 # Reservas de mesa
 
 Módulo testado em produção numa casa operando. A pasta `referencia/` tem o código de
-referência em Next.js (App Router) + Supabase. Você vai **adaptar** ao projeto, não colar às cegas.
+referência em Next.js (App Router) + Supabase. Você vai **adaptar** à realidade de quem pediu,
+não colar às cegas. Quem chama pode não ser programador: fale simples, faça você o que der
+pra fazer, e quando for a vez dele (criar conta, colar chave) diga onde clicar e o que esperar.
 
-## Antes de escrever código
+Texto que veio junto do comando: `$ARGUMENTS`. Se veio, use como resposta antecipada das
+perguntas sobre a casa e não pergunte de novo o que já está ali.
 
-1. Leia o projeto: framework, banco, como faz auth/sessão, onde mora o client do banco no
-   servidor, como nomeia a tabela de estabelecimentos, design system, como roda migration.
-2. Pergunte ao usuário só o que o código não responde (uma pergunta por vez, com opção recomendada):
-   - Qual tabela representa a casa? (a referência usa `lojas(id, nome)`). Uma casa ou várias?
-   - Quais cargos operam a porta e quais configuram? (padrão: Hostess opera; Maître, Chefe de
-     Fila, Supervisor, Subgerente, Gerente configuram; CRM só gerência.)
-   - Fuso da casa, se não for Brasília.
-   - Quer confirmação automática no WhatsApp agora? (é opcional; sem env, nada é enviado.)
-   - Quais partes: tudo, ou só página pública + reservas do dia primeiro?
-3. Se o stack não for Next + Supabase, mantenha `regras.ts` intacto (é TypeScript puro) e
-   reescreva banco/rotas no idioma do projeto, mantendo os mesmos contratos de API.
+## 1. Descobrir a realidade
 
-## Ordem de implantação
+Olhe a pasta atual e caia num dos três casos:
+
+- **A. Projeto Next.js + Supabase**: leia como faz auth/sessão, onde mora o client do banco
+  no servidor, como chama a tabela de estabelecimentos, o design system e como roda migration.
+- **B. Projeto em outro stack** (Laravel, Django, Rails, Express, Firebase...): mantenha
+  `regras.ts` (TypeScript puro; em outra linguagem, traduza função por função junto com o
+  teste) e reescreva banco e rotas no idioma do projeto, com os mesmos contratos de API.
+- **C. Pasta vazia ou sem sistema**: crie do zero (seção 2) e siga.
+
+Depois pergunte só o que a pasta e o `$ARGUMENTS` não responderam, uma pergunta por vez,
+sempre com uma opção recomendada:
+
+- **A casa**: nome, dias que abre, horários de reserva, quantas pessoas cabem por horário,
+  quantas mesas, teto de pessoas por reserva online (padrão 6), WhatsApp da casa, tolerância
+  (padrão 30 min). Isso vira a config inicial; não deixe a casa com os horários padrão.
+- **Uma casa ou várias** no mesmo sistema. Qual tabela representa a casa (referência: `lojas(id, nome)`).
+- **Quem opera e quem configura** (padrão: Hostess opera; Maître, Chefe de Fila, Supervisor,
+  Subgerente e Gerente configuram; CRM de clientes só a gerência).
+- **Fuso**, se não for Brasília.
+- **WhatsApp automático agora ou depois** (opcional; sem env nada é enviado e tudo funciona).
+
+## 2. Do zero (caso C)
+
+1. `npx create-next-app@latest . --ts --app --eslint --tailwind --no-src-dir --import-alias "@/*" --use-npm`
+   e `npm i @supabase/supabase-js @supabase/ssr`.
+2. Banco: o usuário cria o projeto em supabase.com com a conta dele (login e senha são
+   dele, você só orienta). Peça a Project URL, a anon key e a service_role key (Project
+   Settings > API) e grave em `.env.local` como `NEXT_PUBLIC_SUPABASE_URL`,
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY`. Confira que `.env*` está no
+   `.gitignore` antes de qualquer commit.
+3. Tabelas mínimas antes do `schema.sql`:
+   `lojas(id uuid pk default gen_random_uuid(), nome text not null)` e
+   `equipe(user_id uuid pk references auth.users, loja_id uuid references lojas, cargo text)`,
+   ambas com RLS ligada. Insira a casa dele em `lojas`.
+4. Login da equipe com Supabase Auth (e-mail e senha) via `@supabase/ssr`; `lerSessao()` lê o
+   usuário e busca loja e cargo em `equipe`. O primeiro usuário entra como `Gerente`.
+5. SQL: se tiver a Supabase CLI ou a connection string, rode você; senão entregue o SQL
+   inteiro e diga "SQL Editor > New query > colar > Run".
+6. No fim, ofereça publicar na Vercel (conta dele) com as mesmas três variáveis de ambiente.
+
+## 3. Ordem de implantação
 
 Faça e confira cada passo antes do próximo.
 
@@ -36,9 +70,14 @@ Faça e confira cada passo antes do próximo.
 4. **APIs**: as rotas de `referencia/app/api/reservas/`. As de `publico/` não podem exigir
    login; libere esse caminho no middleware de auth se houver.
 5. **Telas**: siga `referencia/telas.md` com os componentes do próprio projeto.
-6. **Verificação ponta a ponta** (abaixo).
+6. **Config da casa**: grave em `reservas_config` o que ele respondeu sobre a casa (dias,
+   horários com capacidade, mesas, teto, WhatsApp, tolerância). Deixe `ativo = false` até a
+   verificação passar; aí pergunte se liga.
+7. **Verificação ponta a ponta** (abaixo).
+8. **Entrega**: o link público da casa (`/reservar/<id da loja>`) pronto pra bio do Instagram
+   e pro Google, e um resumo de uma tela de como a equipe usa a recepção.
 
-## Regras de negócio (não mudar sem o usuário pedir)
+## 4. Regras de negócio (não mudar sem o usuário pedir)
 
 - Confirmação **automática** respeitando a lotação de cada horário. Sem aprovação manual.
 - Lotação é por **pessoas por horário** (`slots[].capacidade`), não por mesa. Mesa é usada
@@ -54,7 +93,7 @@ Faça e confira cada passo antes do próximo.
 - CRM não tem tabela: deriva de reservas + fila agrupando por telefone.
 - Config nasce **desligada** e é criada no primeiro acesso. A casa liga quando quiser.
 
-## Segurança (não cortar)
+## 5. Segurança (não cortar)
 
 - O **código da reserva é a única credencial** do cliente. 8 caracteres de
   `crypto.getRandomValues`, nunca `Math.random`, nunca menos de 8. Gerador e validador juntos.
@@ -67,7 +106,7 @@ Faça e confira cada passo antes do próximo.
 - Corrida no último lugar: depois do insert/update, reconte (`slotEstourou`) e desfaça se estourou.
 - Validar tudo no servidor (UUID, data, hora, faixas numéricas, tamanho de texto), mesmo que a tela já valide.
 
-## Verificação
+## 6. Verificação
 
 Rode o projeto e confira, de preferência no navegador em largura de celular:
 1. Config desligada: página pública mostra "reservas fechadas". Ligue pela aba Configurações.
